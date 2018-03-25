@@ -7,7 +7,8 @@
 #define RDA5807M_PROXY_H
 
 #include <stdint.h>
-int init_RDA5807_proxy(void);
-int read_register(unsigned char addr, uint16_t* value);
-void close_RDA5807_proxy(void);
+int RDA5807_proxy_init(void);
+int RDA5807_proxy_read_register(unsigned char addr, uint16_t* value);
+int RDA5807_proxy_write_register(unsigned char addr, uint16_t value);
+void RDA5807_proxy_close(void);
 #endif //RDA5807M_PROXY_H

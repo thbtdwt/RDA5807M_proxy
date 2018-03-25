@@ -2,6 +2,7 @@
  * Brief: Api to communication with Arduino RDA5807M bridge.
  *
  * Evolution 18-Feb-2018   Thibaut .Creation
+             25 Mar-2018   Thibaut .Add write support
  */
 
 #include <unistd.h>
@@ -98,6 +99,7 @@ static int decode_bridge_message(unsigned char* msg, unsigned int length,
   int i = 0;
   int start_idx = -1;
   int data_h_idx, data_l_idx;
+  uint16_t data_h, data_l;
 
   // Find the beginning 
   for (i = 0; i < length; i++)
@@ -129,6 +131,7 @@ static int decode_bridge_message(unsigned char* msg, unsigned int length,
     *value = 0;
     return -1;    
   }
+  // Check msg endding
   if (msg[start_idx + 1 + data_length + 1] != 'e')
   {
     fprintf(stderr, "msg[%d] != e\n",1+data_length+1);
@@ -138,18 +141,20 @@ static int decode_bridge_message(unsigned char* msg, unsigned int length,
 
   data_h_idx = start_idx + 1 + 1;
   data_l_idx = data_h_idx + 1;
-
-  *value=((uint16_t)msg[data_h_idx])<<4 + msg[data_l_idx];
+  data_h=(msg[data_h_idx])<<8;
+  data_l=msg[data_l_idx];
+  
+  *value=data_h+data_l;
   return 0;
 }
 
 /*
- * Brief: initialize the proxy
+ * Brief: Read register
  * Param[in]: address of the register
  * Param[out]: value of the register
  * Return: 0 if ok
  */
-int read_register(unsigned char addr, uint16_t* value)
+int RDA5807_proxy_read_register(unsigned char addr, uint16_t* value)
 {
   unsigned char tx_msg[] = {'S',2,'r','?','E'};
   unsigned char rx_msg[MAX_SPI_MESSAGE_SIZE];
@@ -160,12 +165,30 @@ int read_register(unsigned char addr, uint16_t* value)
   return decode_bridge_message(rx_msg, sizeof(rx_msg), value);
 }
 
+/*
+ * Brief: Write register
+ * Param[in]: address of the register
+ * Param[in]: value of the register
+ * Return: 0 if ok
+ */
+int RDA5807_proxy_write_register(unsigned char addr, uint16_t value)
+{
+  unsigned char tx_msg[] = {'S',4,'w','?','?','?','E'};
+  unsigned char rx_msg[MAX_SPI_MESSAGE_SIZE];
+  tx_msg[3] = addr;
+  tx_msg[4] = (value >> 8);
+  tx_msg[5] = (0xFF & value);
+  write_bridge_msg(tx_msg, sizeof(tx_msg));
+
+  return 0; // decode_bridge_message(rx_msg, sizeof(rx_msg), value);
+}
+
 
 /*
  * Brief: initialize the proxy
  * Return: 0 if ok
  */
-int init_RDA5807_proxy(void)
+int RDA5807_proxy_init(void)
 {
     spi_fd = open("/dev/spidev0.0", O_RDWR);
 
@@ -181,7 +204,7 @@ int init_RDA5807_proxy(void)
  * Brief: close the proxy
  * Return: 0 if ok
  */
-void close_RDA5807_proxy(void)
+void RDA5807_proxy_close(void)
 {
     close(spi_fd);
 }
