@@ -19,6 +19,27 @@
 
 #define MAX_SPI_MESSAGE_SIZE 10
 
+#define RDA5807M_BRIDGE_MSG_PAYLOAD_SIZE 2
+
+#define RDA5807M_BRIDGE_MSG_START 's'
+#define RDA5807M_BRIDGE_MSG_ACK   'a'
+#define RDA5807M_BRIDGE_MSG_STOP  'e'
+
+#define RDA5807M_BRIDGE_MSG_ACK_INDEX_1  1
+#define RDA5807M_BRIDGE_MSG_ACK_INDEX_2  5
+
+
+#define RDA5807M_PROXY_MSG_PAYLOAD_SIZE 2
+
+#define RDA5807M_PROXY_MSG_START 'S'
+#define RDA5807M_PROXY_MSG_READ   'r'
+#define RDA5807M_PROXY_MSG_WRITE   'w'
+#define RDA5807M_PROXY_MSG_STOP  'E'
+
+#define RDA5807M_PROXY_MSG_ACK_INDEX_1  1
+#define RDA5807M_PROXY_MSG_ACK_INDEX_2  5
+
+
 /*
  * Brief spi variables
  */
@@ -43,7 +64,7 @@ static int spi_transfer(unsigned char tx_Bytes, unsigned char* rx_Bytes)
 
   if ( 0 > ioctl (spi_fd, SPI_IOC_MESSAGE(1), &spi) )
   {
-    fprintf(stderr, "'%m' (%d)'\n", errno);
+    RDA5807_printf(ERROR, "%s failed '%m' (%d)'\n", __FUNCTION__, errno);
     return errno;
   }
   return 0;
@@ -66,6 +87,7 @@ static int read_bridge_msg(unsigned char* data, unsigned int length)
     }
     usleep (spi_delay_us);
   }
+
   return 0;
 }
 
@@ -77,16 +99,33 @@ static int read_bridge_msg(unsigned char* data, unsigned int length)
  */
 static int write_bridge_msg(unsigned char* data, unsigned int length)
 {
-  unsigned char result[MAX_SPI_MESSAGE_SIZE];
+  unsigned char status[MAX_SPI_MESSAGE_SIZE];
   unsigned int i;
   for (i = 0; i < length; i++)
   {
-    if ( spi_transfer(data[i], result+i) )
+    if ( spi_transfer(data[i], status+i) )
     {
       return -1;
     }
     usleep (spi_delay_us);
   }
+
+  // get the status
+  if ( spi_transfer(0, status+i) )
+  {
+    return -1;
+  }
+
+  if ( ! (status[RDA5807M_BRIDGE_MSG_ACK_INDEX_1] == RDA5807M_BRIDGE_MSG_ACK 
+    && status[RDA5807M_BRIDGE_MSG_ACK_INDEX_2] == RDA5807M_BRIDGE_MSG_ACK) )
+  {
+    RDA5807_printf(ERROR, "%s wrong status not 0x%02x [0x%02x](%d) [0x%02x](%d)\n",
+      __FUNCTION__, RDA5807M_BRIDGE_MSG_ACK,
+      status[RDA5807M_BRIDGE_MSG_ACK_INDEX_1], RDA5807M_BRIDGE_MSG_ACK_INDEX_1,
+      status[RDA5807M_BRIDGE_MSG_ACK_INDEX_2], RDA5807M_BRIDGE_MSG_ACK_INDEX_2);
+    return -1;
+  }
+
   return 0;
 }
 
@@ -108,7 +147,7 @@ static int decode_bridge_message(unsigned char* msg, unsigned int length,
   // Find the beginning 
   for (i = 0; i < length; i++)
   {
-    if (msg[i] == 's')
+    if (msg[i] == RDA5807M_BRIDGE_MSG_START)
     {
       start_idx = i;
       break;
@@ -136,7 +175,7 @@ static int decode_bridge_message(unsigned char* msg, unsigned int length,
     return -1;    
   }
   // Check msg endding
-  if (msg[start_idx + 1 + data_length + 1] != 'e')
+  if (msg[start_idx + 1 + data_length + 1] != RDA5807M_BRIDGE_MSG_STOP)
   {
     RDA5807_printf(ERROR, "msg[%d] != e\n",1+data_length+1);
     *value = 0;
@@ -161,7 +200,8 @@ static int decode_bridge_message(unsigned char* msg, unsigned int length,
 int RDA5807_proxy_read_register(unsigned char addr, uint16_t* value)
 {
   int rc;
-  unsigned char tx_msg[] = {'S',2,'r','?','E'};
+  unsigned char tx_msg[] = {RDA5807M_PROXY_MSG_START,
+    2,RDA5807M_PROXY_MSG_READ,'?', RDA5807M_PROXY_MSG_STOP};
   unsigned char rx_msg[MAX_SPI_MESSAGE_SIZE];
   tx_msg[3] = addr;
 
@@ -189,7 +229,8 @@ int RDA5807_proxy_read_register(unsigned char addr, uint16_t* value)
  */
 int RDA5807_proxy_write_register(unsigned char addr, uint16_t value)
 {
-  unsigned char tx_msg[] = {'S',4,'w','?','?','?','E'};
+  unsigned char tx_msg[] = {RDA5807M_PROXY_MSG_START,
+    4, RDA5807M_PROXY_MSG_WRITE,'?','?','?', RDA5807M_PROXY_MSG_STOP};
   tx_msg[3] = addr;
   tx_msg[4] = (value >> 8);
   tx_msg[5] = (0xFF & value);

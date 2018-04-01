@@ -20,7 +20,7 @@ void RDA5807_printf(enum DEBUG_LEVEL level, const char* format,...)
 
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
-    rc = snprintf(trace_buffer, sizeof(trace_buffer), "[%d-%d-%d %d:%d:%d\n] ",
+    rc = snprintf(trace_buffer, sizeof(trace_buffer), "[%d-%02d-%02d %02d:%02d:%02d] ",
         tm.tm_year + 1900,
         tm.tm_mon + 1,
         tm.tm_mday,
