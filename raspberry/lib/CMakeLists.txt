@@ -1,6 +1,43 @@
 cmake_minimum_required (VERSION 3.7)
 project (RDA5807M_proxy)
 
-include_directories(../include)
+SET(COMMON_C_FLAGS "${COMMON_C_FLAGS} -fsigned-char")
+SET(COMMON_C_FLAGS "${COMMON_C_FLAGS} -frecord-gcc-switches")
+SET(COMMON_C_FLAGS "${COMMON_C_FLAGS} -O2")    
 
-add_library (RDA5807M_proxy SHARED RDA5807M_proxy.c)
+# Warning
+SET(COMMON_C_FLAGS "${COMMON_C_FLAGS} -Werror")
+SET(COMMON_C_FLAGS "${COMMON_C_FLAGS} -Wall")
+SET(COMMON_C_FLAGS "${COMMON_C_FLAGS} -Wextra")
+SET(COMMON_C_FLAGS "${COMMON_C_FLAGS} -Wcast-qual")
+SET(COMMON_C_FLAGS "${COMMON_C_FLAGS} -Winline")
+SET(COMMON_C_FLAGS "${COMMON_C_FLAGS} -Wshadow")
+SET(COMMON_C_FLAGS "${COMMON_C_FLAGS} -Wpointer-arith")
+SET(COMMON_C_FLAGS "${COMMON_C_FLAGS} -Wundef")
+SET(COMMON_C_FLAGS "${COMMON_C_FLAGS} -Wcast-align")
+SET(COMMON_C_FLAGS "${COMMON_C_FLAGS} -Wdisabled-optimization")
+SET(COMMON_C_FLAGS "${COMMON_C_FLAGS} -Wmissing-include-dirs")
+SET(COMMON_C_FLAGS "${COMMON_C_FLAGS} -Wmissing-include-dirs")
+SET(COMMON_C_FLAGS "${COMMON_C_FLAGS} -Wstack-protector")
+SET(COMMON_C_FLAGS "${COMMON_C_FLAGS} -Woverlength-strings")
+
+#
+# C PART
+#
+SET(CMAKE_C_FLAGS "${COMMON_C_FLAGS}")
+SET(CMAKE_C_FLAGS "${COMMON_C_FLAGS} -Wstrict-prototypes")
+
+SET(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} ${COMMON_C_LINK_FLAGS}")
+
+#
+# C++ PART
+#
+SET(CMAKE_CXX_FLAGS "${COMMON_C_FLAGS}")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Weffc++")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Woverloaded-virtual")
+
+SET(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} ${COMMON_C_LINK_FLAGS}")
+
+include_directories(../include)
+add_library (RDA5807M_proxy SHARED RDA5807M_trace.c RDA5807M_proxy.c)

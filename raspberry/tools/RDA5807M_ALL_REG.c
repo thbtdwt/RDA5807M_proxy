@@ -63,7 +63,7 @@ int main (int argc, char* argv[])
         reg_address = (uint16_t) ( 0xffff & strtoul(argv[2], NULL, 0) );
     }
 
-    if ( RDA5807_proxy_init() )
+    if ( RDA5807_proxy_init(0,0) )
     {
         fprintf(stderr,"RDA5807_proxy failed");
         exit(1); 
