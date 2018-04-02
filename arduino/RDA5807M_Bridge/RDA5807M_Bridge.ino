@@ -28,6 +28,7 @@ typedef enum { WAIT_DATA,
                RECEIVING_LENGH,
                RECEIVING_DATA,
                RECEIVING_STOP,
+               PROCESSING_DATA,
                TRANSMIT_START,
                TRANSMIT_LENGH,
                TRANSMIT_DATA,
@@ -84,20 +85,30 @@ void spi_handler(unsigned char data)
     case RECEIVING_STOP:
       if ( data != 'E' )
       {
-        DEBUG_PRINT("e not received");
+        DEBUG_PRINT("E not received");
         DEBUG_PRINT("Packet error");
         SPDR = 'n';
         spi_state = UNKNOWN_STATE;
       }
       else
       {
-        DEBUG_PRINT("e received");
+        DEBUG_PRINT("E received");
         SPDR = 'a';
+        spi_state = PROCESSING_DATA;
+        /*
         if ( process_buffer(spi_buffer) )
           spi_state = TRANSMIT_START;
         else
           spi_state = WAIT_DATA;
+        */
       }
+      break;
+
+    case PROCESSING_DATA:
+      if ( process_buffer(spi_buffer) )
+        spi_state = TRANSMIT_START;
+      else
+        spi_state = WAIT_DATA;
       break;
 
     case TRANSMIT_START:
