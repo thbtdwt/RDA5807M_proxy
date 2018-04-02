@@ -170,7 +170,7 @@ uint16_t read_regiter(uint8_t add)
 void write_regiter(uint8_t add, uint16_t val_H, uint16_t val_L)
 {
   Wire.beginTransmission(I2C_INDX);                
-  Wire.write(0x2);
+  Wire.write(add);
   _write16(val_H, val_L);
   Wire.endTransmission();
 }
@@ -197,9 +197,9 @@ bool process_buffer(unsigned char* msg)
       i2c_register_value_H = msg[2];
       i2c_register_value_L = msg[3];
       DEBUG_PRINT("Write");
-      /*Serial.print(i2c_register_addr,HEX);
-      Serial.print(i2c_register_value_H,HEX);
-      Serial.println(i2c_register_value_L,HEX);*/
+      Serial.println(i2c_register_addr,HEX);
+      Serial.println(i2c_register_value_H,HEX);
+      Serial.println(i2c_register_value_L,HEX);
       write_regiter(i2c_register_addr, i2c_register_value_H, i2c_register_value_L);
       break;
 
