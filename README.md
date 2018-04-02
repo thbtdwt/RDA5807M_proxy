@@ -6,6 +6,7 @@ Unfortunatly the Raspberry doesn't see all FM Receiver i2c busses (I don't know 
 
 The Arduino will be a bridge.
 
+<pre>
   -------------             --------------
  |             |           |              |            -----------
  | Fm Receiver |    i2c    | Arduino mini |    spi    |           |
@@ -13,7 +14,7 @@ The Arduino will be a bridge.
  |             |           |    8 Mhz     |           |           |
   -------------            |              |            -----------
                             --------------
-
+</pre>
 Project on going...
 
 Link:
