@@ -16,36 +16,14 @@
 #include <errno.h>
 #include <RDA5807M_proxy.h>
 #include "RDA5807M_trace.h"
-
-#define MAX_SPI_MESSAGE_SIZE 10
-
-#define RDA5807M_BRIDGE_MSG_PAYLOAD_SIZE 2
-
-#define RDA5807M_BRIDGE_MSG_START 's'
-#define RDA5807M_BRIDGE_MSG_ACK   'a'
-#define RDA5807M_BRIDGE_MSG_STOP  'e'
-
-#define RDA5807M_BRIDGE_MSG_ACK_INDEX_1  1
-#define RDA5807M_BRIDGE_MSG_ACK_INDEX_2  5
-
-
-#define RDA5807M_PROXY_MSG_PAYLOAD_SIZE 2
-
-#define RDA5807M_PROXY_MSG_START 'S'
-#define RDA5807M_PROXY_MSG_READ   'r'
-#define RDA5807M_PROXY_MSG_WRITE   'w'
-#define RDA5807M_PROXY_MSG_STOP  'E'
-
-#define RDA5807M_PROXY_MSG_ACK_INDEX_1  1
-#define RDA5807M_PROXY_MSG_ACK_INDEX_2  5
-
+#include "RDA5807M_msg_def.h"
 
 /*
  * Brief spi variables
  */
 static int spi_fd;
-static unsigned int spi_speed_hz = 1000000;
-static unsigned int spi_delay_us = 10000;
+static unsigned int spi_speed_hz = 2000000;
+static unsigned int spi_delay_us = 1000;
 
 /*
  * Brief: decode the bridge message ant extract the register value
@@ -99,7 +77,7 @@ static int read_bridge_msg(unsigned char* data, unsigned int length)
  */
 static int write_bridge_msg(unsigned char* data, unsigned int length)
 {
-  unsigned char status[MAX_SPI_MESSAGE_SIZE];
+  unsigned char status[RDA5807M_BRIDGE_MAX_MSG_SIZE];
   unsigned int i;
   for (i = 0; i < length; i++)
   {
@@ -117,12 +95,11 @@ static int write_bridge_msg(unsigned char* data, unsigned int length)
   }
 
   if ( ! (status[RDA5807M_BRIDGE_MSG_ACK_INDEX_1] == RDA5807M_BRIDGE_MSG_ACK 
-    && status[RDA5807M_BRIDGE_MSG_ACK_INDEX_2] == RDA5807M_BRIDGE_MSG_ACK) )
+    && status[length] == RDA5807M_BRIDGE_MSG_ACK) )
   {
-    RDA5807_printf(ERROR, "%s wrong status not 0x%02x [0x%02x](%d) [0x%02x](%d)\n",
-      __FUNCTION__, RDA5807M_BRIDGE_MSG_ACK,
-      status[RDA5807M_BRIDGE_MSG_ACK_INDEX_1], RDA5807M_BRIDGE_MSG_ACK_INDEX_1,
-      status[RDA5807M_BRIDGE_MSG_ACK_INDEX_2], RDA5807M_BRIDGE_MSG_ACK_INDEX_2);
+    RDA5807_print_buffer(WARNING, status, sizeof(status),
+      "Wrong status not 0x%02x at (%d) and (%d):\n", RDA5807M_BRIDGE_MSG_ACK,
+      RDA5807M_BRIDGE_MSG_ACK_INDEX_1,length);
     return -1;
   }
 
@@ -140,9 +117,12 @@ static int decode_bridge_message(unsigned char* msg, unsigned int length,
     uint16_t* value)
 {
   unsigned int i = 0;
-  int start_idx = -1;
+  unsigned int start_idx = 0xFFFFFFFF;
+  unsigned int end_idx;
+  uint8_t payload_size;
   int data_h_idx, data_l_idx;
   uint16_t data_h, data_l;
+
 
   // Find the beginning 
   for (i = 0; i < length; i++)
@@ -154,30 +134,42 @@ static int decode_bridge_message(unsigned char* msg, unsigned int length,
     }
   } 
 
-  if (start_idx == -1)
+  if (start_idx == 0xFFFFFFFF)
   {
     *value = 0;
     return -1;
   }
 
-  if (length - (start_idx + 1) < 5)
+  // Get the payload size
+  if ( start_idx + 1 > (length - 1) )
   {
-    *value = 0;
-    return -1;
-  }
-
-  uint8_t data_length;
-  data_length = msg[start_idx + 1];
-  if (data_length != 2)
-  {
-    RDA5807_printf(ERROR, "msg[1] != 2\n");
+    RDA5807_printf(ERROR, "Unable to find payload size [%d] > [%d]\n",
+      start_idx + 1, length - 1);
     *value = 0;
     return -1;    
   }
-  // Check msg endding
-  if (msg[start_idx + 1 + data_length + 1] != RDA5807M_BRIDGE_MSG_STOP)
+  payload_size = msg[start_idx + 1];
+  if (payload_size != RDA5807M_BRIDGE_MSG_PAYLOAD_SIZE)
   {
-    RDA5807_printf(ERROR, "msg[%d] != e\n",1+data_length+1);
+    RDA5807_printf(ERROR, "Wrong payload size %d != %d\n", 
+      start_idx + 1, RDA5807M_BRIDGE_MSG_PAYLOAD_SIZE);
+    *value = 0;
+    return -1;    
+  }
+
+  // Check msg endding
+  end_idx = start_idx + 1 + payload_size + 1;
+  if ( end_idx > (length - 1) )
+  {
+    RDA5807_printf(ERROR, "Unable to find end [%d] > [%d]\n",
+      end_idx, length - 1);
+    *value = 0;
+    return -1;    
+  }
+  if (msg[end_idx] != RDA5807M_BRIDGE_MSG_STOP)
+  {
+    RDA5807_printf(ERROR, "End of msg not found msg[%d] = 0x%02x != 0x%02x\n",
+      end_idx, msg[end_idx], RDA5807M_BRIDGE_MSG_STOP);
     *value = 0;
     return -1;
   }
@@ -201,9 +193,8 @@ int RDA5807_proxy_read_register(unsigned char addr, uint16_t* value)
 {
   int rc;
   unsigned char tx_msg[] = {RDA5807M_PROXY_MSG_START,
-    2,RDA5807M_PROXY_MSG_READ,'?', RDA5807M_PROXY_MSG_STOP};
-  unsigned char rx_msg[MAX_SPI_MESSAGE_SIZE];
-  tx_msg[3] = addr;
+    2,RDA5807M_PROXY_MSG_READ, addr, RDA5807M_PROXY_MSG_STOP};
+  unsigned char rx_msg[RDA5807M_BRIDGE_MAX_MSG_SIZE];
 
   RDA5807_printf(DEBUG, "Write msg [0x%02x]\n", tx_msg[3]);
   if ( 0 != (rc = write_bridge_msg(tx_msg, sizeof(tx_msg))) )
@@ -230,12 +221,12 @@ int RDA5807_proxy_read_register(unsigned char addr, uint16_t* value)
 int RDA5807_proxy_write_register(unsigned char addr, uint16_t value)
 {
   unsigned char tx_msg[] = {RDA5807M_PROXY_MSG_START,
-    4, RDA5807M_PROXY_MSG_WRITE,'?','?','?', RDA5807M_PROXY_MSG_STOP};
-  tx_msg[3] = addr;
-  tx_msg[4] = (value >> 8);
-  tx_msg[5] = (0xFF & value);
-  RDA5807_printf(DEBUG, "Write msg [0x%02x][0x%02x][0x%02x]\n",
-    tx_msg[3], tx_msg[4], tx_msg[5]);
+    4, RDA5807M_PROXY_MSG_WRITE,
+    addr,
+    (value >> 8),(0xFF & value),
+    RDA5807M_PROXY_MSG_STOP};
+
+  RDA5807_print_buffer(DEBUG, tx_msg, sizeof(tx_msg), "Write msg:\n");
   return write_bridge_msg(tx_msg, sizeof(tx_msg));
 }
 
