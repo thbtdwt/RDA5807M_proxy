@@ -1,18 +1,18 @@
 #include <Arduino.h>
 #include <Wire.h>
-
+#include "RDA5807M_msg_def.h"
 
 /*****************************************************************************/
 /*                               DEBUG PART                                  */
 /*****************************************************************************/
 bool debug_on=true;
-char debug_buffer[256];
-int debug_print(const char *fmt, ...) {
+static char debug_buffer[256];
+static int debug_print(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
     vsnprintf(debug_buffer,sizeof(debug_buffer), fmt, args);
-    Serial.println(debug_buffer);
     va_end(args);
+    Serial.println(debug_buffer);
 }
 
 #define DEBUG_PRINT(trace...) do { \
@@ -37,17 +37,11 @@ typedef enum { WAIT_DATA,
 
 spi_state_t spi_state = WAIT_DATA;
 
-#define SPI_BUFFER_SIZE 16
-unsigned char spi_buffer[SPI_BUFFER_SIZE];
-uint8_t spi_buffer_index;
+static unsigned char spi_buffer[RDA5807M_BRIDGE_MAX_MSG_SIZE];
+static uint8_t spi_buffer_index;
 
 
 uint8_t msg_lengh = 0;
-
-
-
-#define CMD_WRITE_16 'w'
-#define CMD_READ_16 'r'
 
 
 /*
@@ -61,9 +55,9 @@ void spi_handler(unsigned char data)
   switch ( spi_state )
   {
     case WAIT_DATA:
-      if ( SPDR == 'S' )
+      if ( SPDR == RDA5807M_PROXY_MSG_START )
       {
-        SPDR = 'a';
+        SPDR = RDA5807M_BRIDGE_MSG_ACK;
         spi_buffer_index = 0;
         spi_state = RECEIVING_LENGH;
         DEBUG_PRINT("S received");
@@ -72,8 +66,8 @@ void spi_handler(unsigned char data)
       
     case RECEIVING_LENGH:
       msg_lengh = data; 
-      spi_state = RECEIVING_DATA;  
-      Serial.print("length: "); Serial.println(msg_lengh); 
+      spi_state = RECEIVING_DATA;
+      DEBUG_PRINT("Msg length %u", msg_lengh);   
       break;
       
     case RECEIVING_DATA:
@@ -83,24 +77,17 @@ void spi_handler(unsigned char data)
       break;
       
     case RECEIVING_STOP:
-      if ( data != 'E' )
+      if ( data != RDA5807M_PROXY_MSG_STOP )
       {
-        DEBUG_PRINT("E not received");
-        DEBUG_PRINT("Packet error");
-        SPDR = 'n';
+        DEBUG_PRINT("Packet error %c not received", RDA5807M_PROXY_MSG_STOP);
+        SPDR = RDA5807M_BRIDGE_MSG_NACK;
         spi_state = UNKNOWN_STATE;
       }
       else
       {
-        DEBUG_PRINT("E received");
-        SPDR = 'a';
+        DEBUG_PRINT("%c received", RDA5807M_PROXY_MSG_STOP);
+        SPDR = RDA5807M_BRIDGE_MSG_ACK;
         spi_state = PROCESSING_DATA;
-        /*
-        if ( process_buffer(spi_buffer) )
-          spi_state = TRANSMIT_START;
-        else
-          spi_state = WAIT_DATA;
-        */
       }
       break;
 
@@ -112,7 +99,7 @@ void spi_handler(unsigned char data)
       break;
 
     case TRANSMIT_START:
-      SPDR = 's';
+      SPDR = RDA5807M_BRIDGE_MSG_START;
       spi_buffer_index = 0;
       spi_state = TRANSMIT_LENGH;
       break;
@@ -124,14 +111,13 @@ void spi_handler(unsigned char data)
     
     case TRANSMIT_DATA:
       SPDR = spi_buffer[spi_buffer_index++];
-      //Serial.print("send"); Serial.println(spi_buffer[spi_buffer_index-1],HEX);
-      DEBUG_PRINT("send 0x%x", spi_buffer[spi_buffer_index-1]);
+      DEBUG_PRINT("SPI Send [0x%02x]", spi_buffer[spi_buffer_index-1]);
       if ( spi_buffer_index == msg_lengh )
         spi_state = TRANSMIT_STOP;
       break;   
     
     case TRANSMIT_STOP:
-      SPDR = 'e';
+      SPDR = RDA5807M_BRIDGE_MSG_STOP;
       spi_state = WAIT_DATA;
       break;    
       
@@ -145,13 +131,6 @@ void spi_handler(unsigned char data)
 /*****************************************************************************/
 /*                                 I2C PART                                  */
 /*****************************************************************************/
-
-inline void uint16_to_uint8(uint16_t val_16, uint8_t* val_H, uint8_t* val_L)
-{
-  *val_H = val_16 >> 8;
-  *val_L = val_16 & 0xFF;
-}
-
 #define I2C_INDX 0x11
 
 uint16_t _read16(void)
@@ -192,6 +171,18 @@ void write_regiter(uint8_t add, uint16_t val_H, uint16_t val_L)
 /*****************************************************************************/
 
 /*
+ * Brief: Extract uint16_t to two uint8_t
+ * Param[in]: uint16_t value
+ * Param[out]: uint8_t high value
+ * Param[out]: uint8_t low value
+ */
+inline void uint16_to_uint8(uint16_t val_16, uint8_t* val_H, uint8_t* val_L)
+{
+  *val_H = val_16 >> 8;
+  *val_L = val_16 & 0xFF;
+}
+
+/*
  * Brief: Interpret a message
  * Param[in]: message
  * Return: True if an answer has to be send.
@@ -203,25 +194,19 @@ bool process_buffer(unsigned char* msg)
   uint8_t i2c_register_value_L;
   switch ( msg[0] )
   {
-    case CMD_WRITE_16:
+    case RDA5807M_PROXY_MSG_WRITE:
       i2c_register_addr    = msg[1];
       i2c_register_value_H = msg[2];
       i2c_register_value_L = msg[3];
-      DEBUG_PRINT("Write");
-      Serial.println(i2c_register_addr,HEX);
-      Serial.println(i2c_register_value_H,HEX);
-      Serial.println(i2c_register_value_L,HEX);
+      DEBUG_PRINT("I2C Write [0x%02x][0x%02x][0x%02x]", i2c_register_addr, i2c_register_value_H, i2c_register_value_L);
       write_regiter(i2c_register_addr, i2c_register_value_H, i2c_register_value_L);
       break;
 
-    case CMD_READ_16:
+    case RDA5807M_PROXY_MSG_READ:
       i2c_register_addr    = msg[1];
-      DEBUG_PRINT("Read");
-      /*Serial.print(i2c_register_addr,HEX);
-      spi_buffer[0]=6;
-      spi_buffer[1]=9;*/
+      DEBUG_PRINT("I2C Read regiter [0x%02x]", i2c_register_addr);
       uint16_to_uint8(read_regiter(i2c_register_addr), &spi_buffer[0], &spi_buffer[1]);
-      msg_lengh = 2;
+      msg_lengh = RDA5807M_BRIDGE_MSG_PAYLOAD_SIZE;
       return true;
       
     default:
@@ -229,7 +214,6 @@ bool process_buffer(unsigned char* msg)
   }
   return false;
 }
-
 
 
 /*****************************************************************************/

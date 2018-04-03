@@ -59,6 +59,12 @@
 #define RDA5807M_BRIDGE_MSG_ACK   'a'
 
 /*
+ * Brief: Byte used to indentify the non acknowledge
+ * of the msg (from the bridge)
+ */
+#define RDA5807M_BRIDGE_MSG_NACK   'n'
+
+/*
  * Brief: Byte used to indentify the endding
  * of the msg (from the bridge)
  */
