@@ -1,0 +1,9 @@
+# ignore cmake files
+CMakeFiles/
+Makefile
+CMakeCache.txt
+cmake_install.cmake
+
+# ignore libraries and binaries
+libRDA5807M_proxy.so
+RDA5807M_rw_register
