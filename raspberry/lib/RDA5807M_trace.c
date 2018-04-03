@@ -8,7 +8,7 @@
 #include <time.h>
 #include "RDA5807M_trace.h"
 
-static enum DEBUG_LEVEL level_g = WARNING;
+static enum RDA5807_DEBUG_LEVEL level_g = RDA5807_WARNING;
 
 /*
 #define FORMAT_HEADER { \
@@ -30,12 +30,24 @@ static enum DEBUG_LEVEL level_g = WARNING;
 */
 
 /*
+ * Brief: Set the debug level
+ * Param[in]: debug level
+ */
+void RDA5807_proxy_set_debug_level(enum RDA5807_DEBUG_LEVEL level)
+{
+    if ( level > RDA5807_WARNING )
+        level_g = RDA5807_WARNING;
+    else
+        level_g = level;
+}
+
+/*
  * Brief: Print trace
  * Param[in]: debug level
  * Param[in]: function name
  * Param[in]: format
  */
-void RDA5807_printf_internal(enum DEBUG_LEVEL level, const char* function, const char* format,...)
+void RDA5807_printf_internal(enum RDA5807_DEBUG_LEVEL level, const char* function, const char* format,...)
 {
     int rc;
     char trace_buffer[4096];
@@ -61,7 +73,7 @@ void RDA5807_printf_internal(enum DEBUG_LEVEL level, const char* function, const
     rc += vsnprintf(trace_buffer + rc, sizeof(trace_buffer) - rc, format, args);
     va_end(args);
 
-    fputs(trace_buffer, ( level = ERROR ) ? stderr : stdout);
+    fputs(trace_buffer, ( level == RDA5807_ERROR ) ? stderr : stdout);
 }
 
 /*
@@ -72,7 +84,7 @@ void RDA5807_printf_internal(enum DEBUG_LEVEL level, const char* function, const
  * Param[in]: buffer size
  * Param[in]: format
  */
-void RDA5807_print_buffer_internal(enum DEBUG_LEVEL level, const char* function, const char* buffer, unsigned int size,
+void RDA5807_print_buffer_internal(enum RDA5807_DEBUG_LEVEL level, const char* function, const char* buffer, unsigned int size,
     const char* format,...)
 {
     int rc;
@@ -98,11 +110,11 @@ void RDA5807_print_buffer_internal(enum DEBUG_LEVEL level, const char* function,
     rc += vsnprintf(trace_buffer + rc, sizeof(trace_buffer) - rc, format, args);
     va_end(args);
 
-    for ( i = 0; i < size; i++)
+    for ( i = 0; i < size; i++ )
     {
        rc += snprintf(trace_buffer + rc, sizeof(trace_buffer) - rc, "\t[%02d] [0x%02x] [%c]\n",
        i, buffer[i], (buffer[i] > 0x20) ? buffer[i] : ' ') ; 
     }
 
-    fputs(trace_buffer, ( level = ERROR ) ? stderr : stdout);
+    fputs(trace_buffer, ( level == RDA5807_ERROR ) ? stderr : stdout);
 }

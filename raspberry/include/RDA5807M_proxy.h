@@ -10,6 +10,16 @@
 #include <stdint.h>
 
 /*
+ * Brief: Debug level
+ */
+enum RDA5807_DEBUG_LEVEL {
+	RDA5807_DEBUG,
+	RDA5807_INFO,
+	RDA5807_WARNING,
+	RDA5807_ERROR
+};
+
+/*
  * Brief: initialize the proxy
  * Param[in]: spi bus speed
  * Param[in]: spi delay between two transfer
@@ -38,5 +48,11 @@ int RDA5807_proxy_write_register(unsigned char addr, uint16_t value);
  * Return: 0 if ok
  */
 void RDA5807_proxy_close(void);
+
+/*
+ * Brief: Set the debug level
+ * Param[in]: debug level
+ */
+void RDA5807_proxy_set_debug_level(enum RDA5807_DEBUG_LEVEL level);
 
 #endif //RDA5807M_PROXY_H

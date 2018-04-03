@@ -9,13 +9,8 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <RDA5807M_proxy.h>
 
-enum DEBUG_LEVEL {
-	DEBUG,
-	INFO,
-	WARNING,
-	ERROR
-};
 
 /*
  * Brief: Print trace 
@@ -26,7 +21,7 @@ enum DEBUG_LEVEL {
     RDA5807_printf_internal(level, __FUNCTION__,##__VA_ARGS__); \
 } while (0)
 
-void RDA5807_printf_internal(enum DEBUG_LEVEL level, const char* function, 
+void RDA5807_printf_internal(enum RDA5807_DEBUG_LEVEL level, const char* function, 
     const char* format,...) __attribute__ ((format (printf, 3, 4)));
 
 /*
@@ -40,7 +35,7 @@ void RDA5807_printf_internal(enum DEBUG_LEVEL level, const char* function,
     RDA5807_print_buffer_internal(level, __FUNCTION__, (char*)buffer, size,##__VA_ARGS__); \
 } while (0)
 
-void RDA5807_print_buffer_internal(enum DEBUG_LEVEL level, const char* function,
+void RDA5807_print_buffer_internal(enum RDA5807_DEBUG_LEVEL level, const char* function,
     const char* buffer, unsigned int size,
     const char* format,...) __attribute__ ((format (printf, 5, 6)));
 
