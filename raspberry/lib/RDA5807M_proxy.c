@@ -193,7 +193,7 @@ int RDA5807_proxy_read_register(unsigned char addr, uint16_t* value)
 {
   int rc;
   unsigned char tx_msg[] = {RDA5807M_PROXY_MSG_START,
-    2,RDA5807M_PROXY_MSG_READ, addr, RDA5807M_PROXY_MSG_STOP};
+    1,RDA5807M_PROXY_MSG_READ, addr, RDA5807M_PROXY_MSG_STOP};
   unsigned char rx_msg[RDA5807M_BRIDGE_MAX_MSG_SIZE];
 
   RDA5807_printf(RDA5807_DEBUG, "Write msg [0x%02x]\n", tx_msg[3]);
@@ -221,7 +221,7 @@ int RDA5807_proxy_read_register(unsigned char addr, uint16_t* value)
 int RDA5807_proxy_write_register(unsigned char addr, uint16_t value)
 {
   unsigned char tx_msg[] = {RDA5807M_PROXY_MSG_START,
-    4, RDA5807M_PROXY_MSG_WRITE,
+    3, RDA5807M_PROXY_MSG_WRITE,
     addr,
     (value >> 8),(0xFF & value),
     RDA5807M_PROXY_MSG_STOP};
@@ -229,7 +229,6 @@ int RDA5807_proxy_write_register(unsigned char addr, uint16_t value)
   RDA5807_print_buffer(RDA5807_DEBUG, tx_msg, sizeof(tx_msg), "Write msg:\n");
   return write_bridge_msg(tx_msg, sizeof(tx_msg));
 }
-
 
 /*
  * Brief: initialize the proxy
