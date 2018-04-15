@@ -35,12 +35,20 @@ typedef enum { WAIT_DATA,
                TRANSMIT_STOP,
                UNKNOWN_STATE }spi_state_t;
 
+/*
+ * Brief: spi state
+ */
 spi_state_t spi_state = WAIT_DATA;
 
+/*
+ * Brief: spi buffer and index 
+ */
 static unsigned char spi_buffer[RDA5807M_BRIDGE_MAX_MSG_SIZE];
 static uint8_t spi_buffer_index;
 
-
+/*
+ * Brief: lengh of the message
+ */
 uint8_t msg_lengh = 0;
 
 
@@ -72,7 +80,7 @@ void spi_handler(unsigned char data)
       
     case RECEIVING_DATA:
       spi_buffer[spi_buffer_index++] = data;
-      if ( spi_buffer_index == msg_lengh )
+      if ( spi_buffer_index == msg_lengh + 1 )
         spi_state = RECEIVING_STOP;    
       break;
       
@@ -133,6 +141,10 @@ void spi_handler(unsigned char data)
 /*****************************************************************************/
 #define I2C_INDX 0x11
 
+/*
+ * Brief: Read  16 bit value 
+ * Return: 16 bit value
+ */
 uint16_t _read16(void)
 {
   uint8_t hiByte = Wire.read();
@@ -140,12 +152,22 @@ uint16_t _read16(void)
   return(256*hiByte + loByte);
 }
 
+/*
+ * Brief: Write 16 bit value 
+ * Param[in]: high value
+ * Param[in]: low value
+ */
 void _write16(uint16_t val_H, uint16_t val_L)
 {
   Wire.write(val_H);
   Wire.write(val_L);
 }
 
+/*
+ * Brief: Read register
+ * Param[in]: register address
+ * Return: 16 bit value
+ */
 uint16_t read_regiter(uint8_t add)
 {
   Wire.beginTransmission(I2C_INDX); 
@@ -157,6 +179,12 @@ uint16_t read_regiter(uint8_t add)
   return res;
 }
 
+/*
+ * Brief: Write 16 bit value in register 
+ * Param[in]: register address
+ * Param[in]: high value
+ * Param[in]: low value
+ */
 void write_regiter(uint8_t add, uint16_t val_H, uint16_t val_L)
 {
   Wire.beginTransmission(I2C_INDX);                
@@ -219,7 +247,10 @@ bool process_buffer(unsigned char* msg)
 /*****************************************************************************/
 /*                                 MAIN PART                                  */
 /*****************************************************************************/
-                    
+
+/*
+ * Brief: Setup
+ */
 void setup (void)
 {
   Serial.begin(57600);
@@ -232,7 +263,9 @@ void setup (void)
   Wire.begin();
 }  
 
-
+/*
+ * Brief: Main Loop
+ */
 void loop (void)
 {
   if((SPSR & (1 << SPIF)) != 0)
