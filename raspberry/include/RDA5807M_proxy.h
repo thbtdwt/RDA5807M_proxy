@@ -7,6 +7,10 @@
 #ifndef RDA5807M_PROXY_H
 #define RDA5807M_PROXY_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 
 /*
@@ -54,5 +58,9 @@ void RDA5807_proxy_close(void);
  * Param[in]: debug level
  */
 void RDA5807_proxy_set_debug_level(enum RDA5807_DEBUG_LEVEL level);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //RDA5807M_PROXY_H

@@ -40,4 +40,4 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Woverloaded-virtual")
 SET(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} ${COMMON_C_LINK_FLAGS}")
 
 include_directories(../include)
-add_library (RDA5807M_proxy SHARED RDA5807M_trace.c RDA5807M_proxy.c)
+add_library (RDA5807M_proxy SHARED RDA5807M_trace.c RDA5807M_proxy.c RDA5807M_radio.c)

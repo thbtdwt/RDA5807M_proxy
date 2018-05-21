@@ -21,7 +21,7 @@
 /*
  * Brief spi variables
  */
-static int spi_fd;
+static int spi_fd = -1;
 static unsigned int spi_speed_hz = 2000000;
 static unsigned int spi_delay_us = 1000;
 
@@ -269,5 +269,6 @@ int RDA5807_proxy_init(unsigned int spi_speed, unsigned int spi_delay)
  */
 void RDA5807_proxy_close(void)
 {
-    close(spi_fd);
+    if ( 0 > spi_fd )
+        close(spi_fd);
 }

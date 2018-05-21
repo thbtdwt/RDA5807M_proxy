@@ -8,3 +8,6 @@ MESSAGE("RDA5807M_PROXY ${RDA5807M_PROXY}")
 
 add_executable (RDA5807M_rw_register RDA5807M_rw_register.c)
 target_link_libraries (RDA5807M_rw_register LINK_PUBLIC ${RDA5807M_PROXY})
+
+add_executable (RDA5807M_tool RDA5807M_tool.cpp)
+target_link_libraries (RDA5807M_tool LINK_PUBLIC ${RDA5807M_PROXY})
