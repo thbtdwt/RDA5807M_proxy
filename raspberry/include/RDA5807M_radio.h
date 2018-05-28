@@ -1,7 +1,7 @@
 /* RDA5807M_RADIO
  * Brief: Api to set the RDA5807M radio.
  *
- * Evolution 18-Mai-2018   Thibaut .Creation
+ * Evolution 18-May-2018   Thibaut .Creation
  *
  */
 #ifndef RDA5807M_RADIO_H
@@ -38,6 +38,16 @@ typedef enum {
     ON,
     OFF
 } RDA5807M_state_t;
+
+/*
+ * Brief: RDS info
+ */
+typedef struct {
+    int valid;
+    uint16_t PI;
+    char station_name[9];
+    char station_text[65];
+} RDS_info_t;
 
 /*
  * Brief: Turn on the radio
@@ -105,6 +115,13 @@ int RDA5807M_set_frequency(float freq);
 int RDA5807M_seek(RDA5807M_seek_direction_t direction);
 
 /*
+ * Brief: set rds
+ * Param[in]: ON or OFF
+ * Return: 0 if ok
+ */
+int RDA5807M_set_rds(RDA5807M_state_t state);
+
+/*
  * Brief: get the chip id
  * Param[out]: chipid
  * Return: 0 if ok
@@ -147,6 +164,13 @@ int RDA5807M_get_mute(RDA5807M_state_t* state);
 int RDA5807M_get_frequency(float* freq);
 
 /*
+ * Brief: get rds
+ * Param[out]: ON or OFF
+ * Return: 0 if ok
+ */
+int RDA5807M_get_rds(RDA5807M_state_t* state);
+
+/*
  * Brief: get the fm true state
  * Param[out]: ON or OFF
  * Return: 0 if ok
@@ -173,6 +197,19 @@ int RDA5807M_get_stereo(RDA5807M_state_t* stereo);
  * Return: 0 if ok
  */
 int RDA5807M_get_rssi(uint8_t* rssi);
+
+/*
+ * Brief: update RDS
+ * Return: 0 if ok
+ */
+int RDA5807M_update_rds(void);
+
+/*
+ * Brief: get RDS info
+ * Param[out]: rds_info
+ * Return: 0 if ok
+ */
+int RDA5807M_get_rds_info(RDS_info_t* rds_info);
 
 #ifdef __cplusplus
 }

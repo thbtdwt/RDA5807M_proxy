@@ -1,16 +1,19 @@
-/* RDA5807M
+/* RDA5807M_radio
  * Brief: Api to set the RDA5807M radio.
  *
- * Evolution 18-Mai-2018   Thibaut .Creation
+ * Evolution 18-May-2018   Thibaut .Creation
+ *           26-May-2018   Thibaut .Add RDS support
  *
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 #include <RDA5807M_radio.h>
 #include <RDA5807M_proxy.h>
 #include "RDA5807M_REG.h"
+#include "RDS_decoder.h"
 
 
 /*
@@ -206,6 +209,22 @@ int RDA5807M_seek(RDA5807M_seek_direction_t direction) {
 }
 
 /*
+ * Brief: set rds
+ * Param[in]: ON or OFF
+ * Return: 0 if ok
+ */
+int RDA5807M_set_rds(RDA5807M_state_t state) {
+    int ret = 1;
+    RDA5807M_REG_CTRL_t reg;
+
+    if ( 0 == (ret = RDA5807_proxy_read_register(RDA5807M_REG_CTRL, &reg.value)) ) {
+        reg.bits.RDS = ( state == ON )? 1 : 0;
+        ret = RDA5807_proxy_write_register(RDA5807M_REG_CTRL, reg.value);
+    }
+    return ret;
+}
+
+/*
  * Brief: get the chip id
  * Param[out]: chipid
  * Return: 0 if ok
@@ -309,6 +328,20 @@ int RDA5807M_get_frequency(float* freq) {
 }
 
 /*
+ * Brief: get rds
+ * Param[out]: ON or OFF
+ * Return: 0 if ok
+ */
+int RDA5807M_get_rds(RDA5807M_state_t* state) {
+    int ret = 1;
+    RDA5807M_REG_CTRL_t reg = {.value = 0};
+    if ( 0 == (ret = RDA5807_proxy_read_register(RDA5807M_REG_CTRL, &reg.value)) ) {  
+        *state = ( reg.bits.RDS )? ON : OFF;
+    }
+    return ret;
+}
+
+/*
  * Brief: get the fm true state
  * Param[out]: ON or OFF
  * Return: 0 if ok
@@ -362,4 +395,39 @@ int RDA5807M_get_rssi(uint8_t* rssi) {
         *rssi = reg.bits.RSSI;
     }
     return ret;
+}
+
+/*
+ * Brief: update RDS
+ * Return: 0 if ok
+ */
+int RDA5807M_update_rds(void) {
+    int ret = 1;
+    RDA5807M_REG_RA_t reg = {.value = 0};
+
+    if ( 0 == (ret = RDA5807_proxy_read_register(RDA5807M_REG_RA, &reg.value)) ) {
+        if ( reg.bits.RDS_READY ) {
+            RDA5807M_REG_RDSx_t rdsx[4] = {0, 0, 0, 0};
+            int i;
+            unsigned char rds_reg_address = RDA5807M_REG_RDSA;
+            
+            for ( i = 0; i < 4; i++ ) {
+                if ( 0 != (ret = RDA5807_proxy_read_register(rds_reg_address + i, &rdsx[i])) ) {
+                    return ret;
+                }
+            }
+            ret = RDS_decode(rdsx[0], rdsx[1], rdsx[2], rdsx[3]);
+        }
+    }
+    return ret;
+}
+
+/*
+ * Brief: get RDS info
+ * Param[out]: rds_info
+ * Return: 0 if ok
+ */
+int RDA5807M_get_rds_info(RDS_info_t* rds_info) {
+    memcpy(rds_info, RDS_get_info(), sizeof(RDS_info_t));
+    return 0;
 }

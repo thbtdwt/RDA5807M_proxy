@@ -1,7 +1,7 @@
 /* RDA5807M_REG
  * Brief: RDA5807M register description.
  *
- * Evolution 18-Mai-2018   Thibaut .Creation
+ * Evolution 18-May-2018   Thibaut .Creation
  *
  */
 #ifndef RDA5807M_REG_H
@@ -148,5 +148,8 @@ typedef union {
 	} bits;
 } RDA5807M_REG_RB_t;
 
+
+/* RDSx Register (ie RDSA, RDSB, RDSC, RDSD) */
+typedef uint16_t RDA5807M_REG_RDSx_t;
 
 #endif // RDA5807M_REG_H

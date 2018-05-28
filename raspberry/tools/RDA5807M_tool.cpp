@@ -63,7 +63,7 @@ int main (int argc, char* argv[]) {
         exit(1);
     }
 
-    if ( RDA5807_proxy_init(0,5000) )
+    if ( RDA5807_proxy_init(0,1000) )
     {
         std::cerr << "RDA5807_proxy failed" << std::endl;
         exit(1); 
@@ -135,7 +135,13 @@ int main (int argc, char* argv[]) {
         ret = RDA5807M_seek(SEEK_UP);
 
     } else if ( command == "seekDown" ) { 
-        ret = RDA5807M_seek(SEEK_DOWN);  
+        ret = RDA5807M_seek(SEEK_DOWN);
+
+    } else if ( command == "enableRDS" ) { 
+        ret = RDA5807M_set_rds(ON);
+    
+    } else if ( command == "disableRDS" ) { 
+        ret = RDA5807M_set_rds(OFF); 
 
     } else if ( command == "getChipId" ) {
         uint8_t chipId;
@@ -173,6 +179,13 @@ int main (int argc, char* argv[]) {
         if ( 0 == (ret = RDA5807M_get_frequency(&freq)) )
             std::cout << freq << std::endl;
     
+    } else if ( command == "getRDS" ) { 
+        RDA5807M_state_t state;
+        std::string state_s("unknow");
+        if ( 0 == (ret = RDA5807M_get_rds(&state)) )
+            state_s = ( state == ON ) ? "enabled" : "disabled";
+        std::cout << state_s << std::endl;
+
     } else if ( command == "getFmTrue" ) {
         RDA5807M_state_t state;
         std::string state_s("unknow");
@@ -199,8 +212,28 @@ int main (int argc, char* argv[]) {
         if ( 0 == (ret = RDA5807M_get_rssi(&rssi)) )
             std::cout << (int)rssi << std::endl;
 
-    } else if ( command == "checkRDS" ) {         
-; // TODO
+    } else if ( command == "updateRDS" ) {
+        int i;
+        checkArg;
+        int loop = strtol(argv[2], NULL, 0);
+
+        for ( i = 0; i < loop; i++ )
+            ret = RDA5807M_update_rds();        
+
+    } else if ( command == "getStation" ) {
+        RDS_info_t rds_info;
+        std::string station_n("unknow");
+        int i;
+
+        for ( i = 0; i < 50; i++ )
+            ret = RDA5807M_update_rds();
+
+        if ( 0 == (ret = RDA5807M_get_rds_info(&rds_info)) ) {
+            if ( rds_info.valid ) {
+                station_n = std::string(rds_info.station_name);
+            }
+        }
+        std::cerr << station_n << std::endl;
     } else {
         std::cerr << "Unknown command\n" << std::endl;
         usage();
