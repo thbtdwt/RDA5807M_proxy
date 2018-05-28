@@ -5,7 +5,7 @@
 /*****************************************************************************/
 /*                               DEBUG PART                                  */
 /*****************************************************************************/
-bool debug_on=true;
+bool debug_on=false;
 static char debug_buffer[256];
 static int debug_print(const char *fmt, ...) {
     va_list args;
